@@ -1,7 +1,7 @@
 # RustGo - Rust-like Programming in Go
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/dongrv/rust-go.svg)](https://pkg.go.dev/github.com/dongrv/rust-go)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/apache-2-0)
+[![License: Apache 2.0](https://img.shields.io/badge/apache-2.0-green.svg)](https://opensource.org/licenses/apache-2-0)
 
 RustGo is a comprehensive framework that brings Rust's elegant programming patterns to Go. Write Go code with Rust's expressiveness, safety, and functional programming capabilities while maintaining Go's simplicity and performance.
 
