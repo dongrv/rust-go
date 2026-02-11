@@ -35,38 +35,46 @@ go get github.com/dongrv/rust-go
 
 ### Option Type (Null Safety)
 ```go
-import "github.com/dongrv/rust-go/pkg/rustgo/core"
+import (
+    "fmt"
+    "github.com/dongrv/rust-go"
+)
 
 // Safe null handling
-value := core.Some(42)
-result := core.MapOption(value, func(x int) string {
+value := rust.Some(42)
+result := rust.MapOption(value, func(x int) string {
     return fmt.Sprintf("Number: %d", x)
 })
 
 fmt.Println(result.UnwrapOr("default")) // "Number: 42"
 
 // Chaining operations
-finalResult := core.AndThenOption(value, func(x int) core.Option[string] {
+finalResult := rust.AndThenOption(value, func(x int) rust.Option[string] {
     if x > 10 {
-        return core.Some(fmt.Sprintf("Large: %d", x))
+        return rust.Some(fmt.Sprintf("Large: %d", x))
     }
-    return core.None[string]()
+    return rust.None[string]()
 })
 ```
 
 ### Result Type (Error Handling)
 ```go
-func divide(a, b int) core.Result[int, string] {
+import (
+    "fmt"
+    "github.com/dongrv/rust-go"
+)
+
+func divide(a, b int) rust.Result[int, string] {
     if b == 0 {
-        return core.Err[int, string]("division by zero")
+        return rust.Err[int, string]("division by zero")
     }
-    return core.Ok[int, string](a / b)
+    return rust.Ok[int, string](a / b)
 }
 
 // Railway-oriented programming
-computation := core.AndThenResult(divide(10, 2), func(x int) core.Result[int, string] {
-    return core.AndThenResult(divide(x, 2), func(y int) core.Result[int, string] {
-        return core.Ok[int, string](y * 3)
+computation := rust.AndThenResult(divide(10, 2), func(x int) rust.Result[int, string] {
+    return rust.AndThenResult(divide(x, 2), func(y int) rust.Result[int, string] {
+        return rust.Ok[int, string](y * 3)
     })
 })
 
@@ -75,13 +83,18 @@ fmt.Println(computation) // Ok(6)
 
 ### Iterator Usage
 ```go
+import (
+    "fmt"
+    "github.com/dongrv/rust-go"
+)
+
 numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 // Lazy, chainable operations
-result := core.Collect(
-    core.Take(
-        core.Map(
-            core.Filter(core.Iter(numbers), func(x int) bool { return x%2 == 0 }),
+result := rust.Collect(
+    rust.Take(
+        rust.Map(
+            rust.Filter(rust.Iter(numbers), func(x int) bool { return x%2 == 0 }),
             func(x int) int { return x * 2 },
         ),
         3,
@@ -91,7 +104,7 @@ result := core.Collect(
 fmt.Println(result) // [4 8 12]
 
 // Functional operations
-sum := core.Fold(core.Iter(numbers), 0, func(acc, x int) int {
+sum := rust.Fold(rust.Iter(numbers), 0, func(acc, x int) int {
     return acc + x
 })
 fmt.Printf("Sum: %d\n", sum) // Sum: 55
@@ -99,10 +112,15 @@ fmt.Printf("Sum: %d\n", sum) // Sum: 55
 
 ### Chainable Collections
 ```go
+import (
+    "fmt"
+    "github.com/dongrv/rust-go"
+)
+
 data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 // Functional pipeline
-result := core.From(data).
+result := rust.From(data).
     Filter(func(x int) bool { return x%2 == 0 }). // Even numbers
     Map(func(x int) int { return x * 3 }).        // Triple them
     Skip(1).                                      // Skip first
@@ -113,11 +131,11 @@ result := core.From(data).
 fmt.Println(result) // [24 18 12]
 
 // More operations
-unique := core.From([]int{1, 2, 2, 3, 3, 3}).Unique().Collect()
+unique := rust.From([]int{1, 2, 2, 3, 3, 3}).Unique().Collect()
 fmt.Println(unique) // [1 2 3]
 
 // Partition
-trueVals, falseVals := core.From(data).Partition(func(x int) bool {
+trueVals, falseVals := rust.From(data).Partition(func(x int) bool {
     return x > 5
 })
 ```
@@ -129,8 +147,8 @@ The `Option[T]` type eliminates null pointer exceptions by making the presence o
 
 ```go
 // Instead of: var value *int
-value := core.Some(42)  // Explicitly has a value
-empty := core.None[int]() // Explicitly has no value
+value := rust.Some(42)  // Explicitly has a value
+empty := rust.None[int]() // Explicitly has no value
 
 // Safe operations
 result := value.UnwrapOr(0)     // 42
@@ -142,21 +160,26 @@ The `Result[T, E]` type makes error handling explicit and type-safe:
 
 ```go
 // Instead of: func() (value int, err error)
-func parseInput(s string) core.Result[int, string] {
+func parseInput(s string) rust.Result[int, string] {
     // Success case
-    return core.Ok[int, string](42)
+    return rust.Ok[int, string](42)
     
     // Error case  
-    return core.Err[int, string]("invalid input")
+    return rust.Err[int, string]("invalid input")
 }
 
 // Railway-oriented programming
-finalResult := parseInput("10").
-    AndThen(func(x int) core.Result[int, string] {
-        return parseInput("20").Map(func(y int) int {
-            return x + y
-        })
-    })
+finalResult := rust.AndThenResult(
+    parseInput("10"),
+    func(x int) rust.Result[int, string] {
+        return rust.MapResult(
+            parseInput("20"),
+            func(y int) int {
+                return x + y
+            },
+        )
+    },
+)
 ```
 
 ### Iterator Pattern
@@ -164,24 +187,32 @@ Lazy, chainable iterators for efficient data processing:
 
 ```go
 // Lazy evaluation - no computation until consumed
-pipeline := core.Map(
-    core.Filter(core.Iter(data), predicate),
+pipeline := rust.Map(
+    rust.Filter(rust.Iter(data), predicate),
     transformer,
 )
 
 // Only now does computation happen
-result := core.Collect(pipeline)
+result := rust.Collect(pipeline)
 ```
 
 ## 🏗️ Architecture
 
 ### Package Structure
 ```
-pkg/rustgo/core/
+rust-go/
 ├── option.go      # Option[T] type and operations
 ├── result.go      # Result[T, E] type and operations  
 ├── iterator.go    # Iterator[T] interface and implementations
-└── chainable.go   # Chainable[T] collections
+├── chainable.go   # Chainable[T] collections
+├── core_test.go   # Comprehensive tests
+├── go.mod         # Go module definition
+├── LICENSE        # Apache 2.0 License
+└── examples/      # Usage examples
+    ├── option_example.go
+    ├── result_example.go
+    ├── iterator_example.go
+    └── comprehensive_example.go
 ```
 
 ### Type Safety
@@ -205,34 +236,34 @@ type CustomIterator struct {
     max   int
 }
 
-func (it *CustomIterator) Next() core.Option[int] {
+func (it *CustomIterator) Next() rust.Option[int] {
     if it.count >= it.max {
-        return core.None[int]()
+        return rust.None[int]()
     }
     value := it.count
     it.count++
-    return core.Some(value)
+    return rust.Some(value)
 }
 
 // Use with existing operations
 iter := &CustomIterator{count: 0, max: 5}
-squared := core.Collect(core.Map(iter, func(x int) int {
+squared := rust.Collect(rust.Map(iter, func(x int) int {
     return x * x
 }))
 ```
 
 ### Error Recovery
 ```go
-func processFile(path string) core.Result[string, string] {
+func processFile(path string) rust.Result[string, string] {
     content, err := os.ReadFile(path)
     if err != nil {
-        return core.Err[string, string](err.Error())
+        return rust.Err[string, string](err.Error())
     }
     
-    return core.AndThenResult(
+    return rust.AndThenResult(
         validateContent(string(content)),
-        func(validated string) core.Result[string, string] {
-            return core.Ok[string, string](processContent(validated))
+        func(validated string) rust.Result[string, string] {
+            return rust.Ok[string, string](processContent(validated))
         },
     )
 }
@@ -271,6 +302,31 @@ finalResult := processFile("data.txt").
 5. **Use lazy iterators** for large datasets
 6. **Leverage type inference** with generics
 
+## 📖 Examples
+
+Check out the comprehensive examples in the `examples/` directory:
+
+- `option_example.go` - Complete Option type usage
+- `result_example.go` - Result type and error handling patterns
+- `iterator_example.go` - Iterator and Chainable operations
+- `comprehensive_example.go` - Real-world order processing system
+
+Run all examples:
+```bash
+cd examples
+go run run_all.bat  # Windows
+./run_all.sh        # Linux/Unix
+```
+
+Or run individual examples:
+```bash
+cd examples
+go run option_example.go
+go run result_example.go
+go run iterator_example.go
+go run comprehensive_example.go
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
@@ -283,7 +339,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for det
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache 2.0 License - see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
